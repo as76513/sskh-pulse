@@ -43,7 +43,7 @@ Re-run `./build_lambda.sh && terraform apply` after every backend code change �
 
 There's no root-level package.json — backend, frontend, and infra are independent; run commands from inside each directory.
 
-Default seeded logins (from `npm run seed`): Admin `ADMIN001` / `admin123`, Employee `EMP001` / `admin123` (password is `SEED_PASSWORD` env var if set). The seeded office has placeholder coordinates (`0,0`) — there's no admin UI to edit an office's lat/long, so real coordinates are set directly via `aws dynamodb update-item` (see the pattern in `infra/local-tables.sh` / `infra/README.md`).
+Default seeded logins (from `npm run seed`): Admin `ADMIN001`, Employee `EMP001` — password is whatever `SEED_PASSWORD` was set to at seed time (see `backend/.env.example`); never write the actual value into a file in this repo, it's public. The seeded office has placeholder coordinates (`0,0`) — there's no admin UI to edit an office's lat/long, so real coordinates are set directly via `aws dynamodb update-item` (see the pattern in `infra/local-tables.sh` / `infra/README.md`).
 
 Geolocation requires HTTPS on real devices, but works over plain HTTP on `localhost`. To test check-in/out from a phone on the same network against a local backend, the backend's `CLIENT_ORIGIN` and the frontend's `VITE_API_URL` need to point at your machine's LAN IP, not `localhost`.
 

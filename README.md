@@ -68,7 +68,7 @@ npm install
 npm run seed                # seeds a default office + admin/employee accounts
 npm run dev                 # http://localhost:4000
 ```
-Default logins (change immediately): Admin `ADMIN001` / `admin123`, Employee `EMP001` / `admin123`.
+Default logins (change immediately via Profile → Change Password): Admin `ADMIN001` / `XXXX`, Employee `EMP001` / `XXXX`. The actual seed password is set via the `SEED_PASSWORD` env var (see `backend/.env.example`) — never write the real value into this file, since it's public.
 
 The seeded office has placeholder coordinates (`0,0`) — set real ones before testing the
 geofence (there's no admin UI for it yet, use `aws dynamodb update-item` against the

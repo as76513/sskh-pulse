@@ -30,3 +30,25 @@ output "api_gateway_target_domain" {
   description = "Add this as a second CNAME in GoDaddy — api_domain_name (sskh-api.shubhshreeknowledgehub.com) points here. Only available after the cert is validated and the full apply completes."
   value       = aws_apigatewayv2_domain_name.api.domain_name_configuration[0].target_domain_name
 }
+
+# --- Frontend (Amplify Hosting) ---
+
+output "amplify_app_id" {
+  description = "Used by deploy_frontend.sh to push builds."
+  value       = aws_amplify_app.frontend.id
+}
+
+output "amplify_default_url" {
+  description = "The branch's default amplifyapp.com URL — test here before the custom domain is wired up."
+  value       = "https://${aws_amplify_branch.main.branch_name}.${aws_amplify_app.frontend.default_domain}"
+}
+
+output "amplify_domain_verification_record" {
+  description = "Add this CNAME in GoDaddy to prove ownership of frontend_root_domain to Amplify."
+  value       = aws_amplify_domain_association.frontend.certificate_verification_dns_record
+}
+
+output "amplify_subdomain_dns_record" {
+  description = "Add this CNAME in GoDaddy for the sskh-pulse subdomain itself. May be empty right after apply — Amplify provisions it asynchronously; re-run `terraform refresh` / check `aws amplify get-domain-association` if blank."
+  value       = try([for s in aws_amplify_domain_association.frontend.sub_domain : s.dns_record][0], null)
+}
