@@ -1,0 +1,5 @@
+bucket       = "sskh-pulse-tf-state-XXXXXXXX"  # from: terraform -chdir=bootstrap output state_bucket_name
+key          = "sskh-pulse/terraform.tfstate"
+region       = "ap-south-1"
+encrypt      = true
+use_lockfile = true  # S3-native state locking (Terraform >= 1.11) — no DynamoDB lock table needed
