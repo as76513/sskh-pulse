@@ -7,6 +7,15 @@ import {
   QueryCommand,
   BatchGetCommand,
 } from '../config/dynamo.js';
+import { regularizeAttendanceRecord } from './adminController.js';
+
+function eachDate(from, to) {
+  const dates = [];
+  for (const d = new Date(from); d <= new Date(to); d.setDate(d.getDate() + 1)) {
+    dates.push(d.toISOString().slice(0, 10));
+  }
+  return dates;
+}
 
 function daysBetween(from, to) {
   const d = (new Date(to) - new Date(from)) / 86400000 + 1;
@@ -111,16 +120,29 @@ export async function decideLeave(req, res) {
     throw e;
   }
 
-  // Deduct balance on approval (atomic, no read-then-write race)
   if (decision === 'approved') {
-    await ddb.send(
-      new UpdateCommand({
-        TableName: Tables.employees,
-        Key: { emp_code: leave.emp_code },
-        UpdateExpression: 'SET leave_balance = leave_balance - :days',
-        ExpressionAttributeValues: { ':days': leave.days },
-      })
-    );
+    if (leave.leave_type === 'regularization') {
+      // Not time off — mark each requested day present instead of deducting balance.
+      for (const work_date of eachDate(leave.from_date, leave.to_date)) {
+        await regularizeAttendanceRecord({
+          emp_code: leave.emp_code,
+          work_date,
+          status: 'present',
+          note: `Regularization approved: ${leave.reason}`,
+          decidedBy: req.user.emp_code,
+        });
+      }
+    } else {
+      // Deduct balance on approval (atomic, no read-then-write race)
+      await ddb.send(
+        new UpdateCommand({
+          TableName: Tables.employees,
+          Key: { emp_code: leave.emp_code },
+          UpdateExpression: 'SET leave_balance = leave_balance - :days',
+          ExpressionAttributeValues: { ':days': leave.days },
+        })
+      );
+    }
   }
   res.json(leave);
 }

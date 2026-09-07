@@ -136,7 +136,9 @@ function MonthCalendar() {
   const leaveByDate = useMemo(() => {
     const map = {};
     for (const l of leaves) {
-      if (l.status !== 'approved') continue;
+      // Regularization isn't a leave day — approval already marks the
+      // attendance record itself present, so let that drive the calendar.
+      if (l.status !== 'approved' || l.leave_type === 'regularization') continue;
       const from = l.from_date?.slice(0, 10);
       const to = l.to_date?.slice(0, 10);
       if (!from || !to) continue;

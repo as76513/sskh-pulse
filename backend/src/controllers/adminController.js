@@ -85,14 +85,11 @@ export async function createOffice(req, res) {
   res.json(item);
 }
 
-// Admin edits/regularizes any attendance record
-export async function regularizeAttendance(req, res) {
-  const { emp_code, work_date, check_in, check_out, status, note } = req.body;
-  if (!emp_code || !work_date)
-    return res.status(400).json({ error: 'emp_code and work_date required' });
-
+// Shared by the admin's direct manual regularization (below) and
+// regularizationController's approval flow (self-service requests).
+export async function regularizeAttendanceRecord({ emp_code, work_date, check_in, check_out, status, note, decidedBy }) {
   const sets = ['regularized_by = :by', 'regularized_note = :note'];
-  const values = { ':by': req.user.emp_code, ':note': note || null };
+  const values = { ':by': decidedBy, ':note': note || null };
 
   if (check_in) { sets.push('check_in = :ci'); values[':ci'] = check_in; }
   if (check_out) { sets.push('check_out = :co'); values[':co'] = check_out; }
@@ -114,6 +111,18 @@ export async function regularizeAttendance(req, res) {
       ReturnValues: 'ALL_NEW',
     })
   );
+  return record;
+}
+
+// Admin edits/regularizes any attendance record directly
+export async function regularizeAttendance(req, res) {
+  const { emp_code, work_date, check_in, check_out, status, note } = req.body;
+  if (!emp_code || !work_date)
+    return res.status(400).json({ error: 'emp_code and work_date required' });
+
+  const record = await regularizeAttendanceRecord({
+    emp_code, work_date, check_in, check_out, status, note, decidedBy: req.user.emp_code,
+  });
   res.json(record);
 }
 
