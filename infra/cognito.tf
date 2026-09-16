@@ -9,6 +9,12 @@ variable "cognito_user_pool_id" {
   default     = "ap-south-1_Gj6XcAi9D"
 }
 
+variable "cognito_email_domain" {
+  description = "Real company email domain — the login screen's username (e.g. \"john.doe\") becomes \"<username>@<this domain>\", the actual identifier Cognito authenticates against. See usernameToEmail in backend/src/config/cognito.js."
+  type        = string
+  default     = "shubhshreeknowledgehub.com"
+}
+
 resource "aws_cognito_user_pool_client" "sskh_pulse" {
   name         = "${var.project_name}-client"
   user_pool_id = var.cognito_user_pool_id

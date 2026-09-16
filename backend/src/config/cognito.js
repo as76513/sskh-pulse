@@ -14,9 +14,17 @@ const client = new CognitoIdentityProviderClient({ region: process.env.AWS_REGIO
 
 const USER_POOL_ID = process.env.COGNITO_USER_POOL_ID;
 const CLIENT_ID = process.env.COGNITO_CLIENT_ID;
+const EMAIL_DOMAIN = process.env.COGNITO_EMAIL_DOMAIN;
 
-// Resolves once a request has already looked up the employee's real email —
-// the screen only ever collects a username, never the email itself.
+// The login screen collects a username like "john.doe", never an email —
+// this pool's real identifier is "john.doe@<company domain>". Real company
+// emails already follow exactly this convention, which is what lets anyone
+// already in the shared pool log in with their existing password, with no
+// setup on this app's side.
+export function usernameToEmail(username) {
+  return `${username.trim().toLowerCase()}@${EMAIL_DOMAIN}`;
+}
+
 export async function verifyCognitoPassword(email, password) {
   await client.send(
     new AdminInitiateAuthCommand({
@@ -48,6 +56,19 @@ export async function createCognitoUser(email, temporaryPassword) {
       Permanent: true,
     })
   );
+}
+
+// Never overwrites a password for a user that already exists in the shared
+// pool — e.g. one of the real people the other app already provisioned.
+// Returns whether it actually created a new user (vs. found an existing one).
+export async function ensureCognitoUser(email, temporaryPassword) {
+  try {
+    await createCognitoUser(email, temporaryPassword);
+    return true;
+  } catch (e) {
+    if (e.name === 'UsernameExistsException') return false;
+    throw e;
+  }
 }
 
 export async function setCognitoPassword(email, newPassword) {

@@ -1,35 +1,39 @@
 import jwt from 'jsonwebtoken';
 import { ddb, Tables, GetCommand, QueryCommand } from '../config/dynamo.js';
-import { verifyCognitoPassword, setCognitoPassword } from '../config/cognito.js';
+import { verifyCognitoPassword, setCognitoPassword, usernameToEmail } from '../config/cognito.js';
 
 export async function login(req, res) {
   const { username, password } = req.body;
   if (!username || !password)
     return res.status(400).json({ error: 'username and password required' });
 
-  // Screen only ever collects the username (e.g. "john.doe") — this resolves
-  // it to the employee record, and from there the real email, which is what
-  // actually gets sent to Cognito. The email itself is never shown on screen.
-  const { Items } = await ddb.send(
-    new QueryCommand({
-      TableName: Tables.employees,
-      IndexName: 'username-index',
-      KeyConditionExpression: 'username = :u',
-      ExpressionAttributeValues: { ':u': username.trim().toLowerCase() },
-    })
-  );
-  const user = Items[0];
-  if (!user) return res.status(401).json({ error: 'Invalid credentials' });
-  if (user.status !== 'active')
-    return res.status(403).json({ error: 'Account is not active' });
-
+  // Cognito is authoritative here — anyone already in the shared pool (e.g.
+  // real people the other app provisioned) can authenticate with whatever
+  // password they already have, with zero setup on this app's side. Only
+  // *after* Cognito confirms the password do we check whether they're also
+  // a registered SSKH Pulse employee.
+  const email = usernameToEmail(username);
   try {
-    await verifyCognitoPassword(user.email, password);
+    await verifyCognitoPassword(email, password);
   } catch (e) {
     if (e.name === 'NotAuthorizedException' || e.name === 'UserNotFoundException')
       return res.status(401).json({ error: 'Invalid credentials' });
     throw e;
   }
+
+  const { Items } = await ddb.send(
+    new QueryCommand({
+      TableName: Tables.employees,
+      IndexName: 'email-index',
+      KeyConditionExpression: 'email = :e',
+      ExpressionAttributeValues: { ':e': email },
+    })
+  );
+  const user = Items[0];
+  if (!user)
+    return res.status(404).json({ error: 'No employee record found for this account. Contact your admin.' });
+  if (user.status !== 'active')
+    return res.status(403).json({ error: 'Account is not active' });
 
   const token = jwt.sign(
     { emp_code: user.emp_code, name: user.name, role: user.role },

@@ -22,6 +22,7 @@ resource "aws_lambda_function" "api" {
       CLIENT_ORIGIN        = var.frontend_origin
       COGNITO_USER_POOL_ID = var.cognito_user_pool_id
       COGNITO_CLIENT_ID    = aws_cognito_user_pool_client.sskh_pulse.id
+      COGNITO_EMAIL_DOMAIN = var.cognito_email_domain
       # AWS_REGION is provided automatically by the Lambda runtime — do not set it here,
       # Lambda rejects it as a reserved environment variable name.
       #

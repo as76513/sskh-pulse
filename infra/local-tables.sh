@@ -17,11 +17,8 @@ echo "Creating tables on $ENDPOINT with prefix '$PREFIX'..."
 ddb create-table \
   --table-name "${PREFIX}-employees" \
   --attribute-definitions AttributeName=emp_code,AttributeType=S AttributeName=email,AttributeType=S \
-    AttributeName=username,AttributeType=S \
   --key-schema AttributeName=emp_code,KeyType=HASH \
-  --global-secondary-indexes \
-    '[{"IndexName":"email-index","KeySchema":[{"AttributeName":"email","KeyType":"HASH"}],"Projection":{"ProjectionType":"ALL"}},
-      {"IndexName":"username-index","KeySchema":[{"AttributeName":"username","KeyType":"HASH"}],"Projection":{"ProjectionType":"ALL"}}]' \
+  --global-secondary-indexes '[{"IndexName":"email-index","KeySchema":[{"AttributeName":"email","KeyType":"HASH"}],"Projection":{"ProjectionType":"ALL"}}]' \
   --billing-mode PAY_PER_REQUEST
 
 ddb create-table \

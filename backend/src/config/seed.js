@@ -1,5 +1,5 @@
 import { ddb, Tables, PutCommand } from './dynamo.js';
-import { createCognitoUser } from './cognito.js';
+import { ensureCognitoUser } from './cognito.js';
 
 // Default password for seeded accounts. CHANGE after first login.
 const DEFAULT_PWD = process.env.SEED_PASSWORD || 'Admin@12345';
@@ -18,16 +18,6 @@ async function putIfAbsent(TableName, Item, keyAttrs) {
   } catch (e) {
     if (e.name === 'ConditionalCheckFailedException') return false;
     throw e;
-  }
-}
-
-// Never overwrites a password for a user that's already provisioned —
-// only ever creates it once, same spirit as putIfAbsent above.
-async function ensureCognitoUser(email, password) {
-  try {
-    await createCognitoUser(email, password);
-  } catch (e) {
-    if (e.name !== 'UsernameExistsException') throw e;
   }
 }
 
@@ -58,9 +48,13 @@ async function run() {
     resignation_enabled: false,
   };
 
+  // Deliberately synthetic identities (not a real person's name) on the real
+  // company domain, so login username -> email resolution (usernameToEmail)
+  // exercises the actual shared pool without colliding with any real employee.
+  const domain = process.env.COGNITO_EMAIL_DOMAIN;
   const seedEmployees = [
-    { emp_code: 'ADMIN001', name: 'System Admin', username: 'system.admin', email: 'admin@shubhshree.com', role: 'admin' },
-    { emp_code: 'EMP001', name: 'Test Employee', username: 'test.employee', email: 'emp@shubhshree.com', role: 'employee' },
+    { emp_code: 'ADMIN001', name: 'Seed Admin', email: `seed.admin@${domain}`, role: 'admin' },
+    { emp_code: 'EMP001', name: 'Seed Employee', email: `seed.employee@${domain}`, role: 'employee' },
   ];
 
   for (const emp of seedEmployees) {
@@ -68,7 +62,7 @@ async function run() {
     await putIfAbsent(Tables.employees, { ...baseEmployee, ...emp }, ['emp_code']);
   }
 
-  console.log(`✅ Seed complete. Admin username: system.admin / ${DEFAULT_PWD}`);
+  console.log(`✅ Seed complete. Admin username: seed.admin / ${DEFAULT_PWD} (only if newly created — existing users keep their real password)`);
   console.log('   Update the "Head Office" lat/long via the admin API before testing geofencing.');
 }
 

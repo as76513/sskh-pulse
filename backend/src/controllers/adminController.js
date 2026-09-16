@@ -10,46 +10,38 @@ import {
   QueryCommand,
   BatchGetCommand,
 } from '../config/dynamo.js';
-import { createCognitoUser } from '../config/cognito.js';
+import { ensureCognitoUser } from '../config/cognito.js';
 
 export async function createEmployee(req, res) {
   const {
-    emp_code, name, username, email, phone, password, role,
+    emp_code, name, email, phone, password, role,
     office_id, shift_start, shift_end, date_of_joining, leave_balance,
   } = req.body;
-  if (!emp_code || !name || !username || !email || !password)
-    return res.status(400).json({ error: 'emp_code, name, username, email, password required' });
+  if (!emp_code || !name || !email || !password)
+    return res.status(400).json({ error: 'emp_code, name, email, password required' });
 
   const { Item: existing } = await ddb.send(
     new GetCommand({ TableName: Tables.employees, Key: { emp_code } })
   );
-  if (existing) return res.status(409).json({ error: 'emp_code, username or email exists' });
+  if (existing) return res.status(409).json({ error: 'emp_code or email exists' });
 
-  const normalizedUsername = username.trim().toLowerCase();
-  const [{ Items: byEmail }, { Items: byUsername }] = await Promise.all([
-    ddb.send(new QueryCommand({
-      TableName: Tables.employees,
-      IndexName: 'email-index',
-      KeyConditionExpression: 'email = :e',
-      ExpressionAttributeValues: { ':e': email },
-    })),
-    ddb.send(new QueryCommand({
-      TableName: Tables.employees,
-      IndexName: 'username-index',
-      KeyConditionExpression: 'username = :u',
-      ExpressionAttributeValues: { ':u': normalizedUsername },
-    })),
-  ]);
-  if (byEmail.length || byUsername.length)
-    return res.status(409).json({ error: 'emp_code, username or email exists' });
+  const { Items: byEmail } = await ddb.send(new QueryCommand({
+    TableName: Tables.employees,
+    IndexName: 'email-index',
+    KeyConditionExpression: 'email = :e',
+    ExpressionAttributeValues: { ':e': email },
+  }));
+  if (byEmail.length) return res.status(409).json({ error: 'emp_code or email exists' });
 
-  // Password lives in the shared Cognito pool now, not in our own table.
-  await createCognitoUser(email, password);
+  // If this email is already a real Cognito user (e.g. someone the other
+  // app provisioned), leave their existing password alone entirely — just
+  // register them as an SSKH Pulse employee. `password` only takes effect
+  // for a genuinely new Cognito user.
+  await ensureCognitoUser(email, password);
 
   const item = {
     emp_code,
     name,
-    username: normalizedUsername,
     email,
     phone: phone || null,
     role: role || 'employee',
