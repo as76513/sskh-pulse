@@ -15,11 +15,13 @@ resource "aws_lambda_function" "api" {
 
   environment {
     variables = {
-      JWT_SECRET          = var.jwt_secret
-      JWT_EXPIRES         = var.jwt_expires
-      DYNAMO_TABLE_PREFIX = var.project_name
-      S3_BUCKET           = aws_s3_bucket.files.bucket
-      CLIENT_ORIGIN       = var.frontend_origin
+      JWT_SECRET           = var.jwt_secret
+      JWT_EXPIRES          = var.jwt_expires
+      DYNAMO_TABLE_PREFIX  = var.project_name
+      S3_BUCKET            = aws_s3_bucket.files.bucket
+      CLIENT_ORIGIN        = var.frontend_origin
+      COGNITO_USER_POOL_ID = var.cognito_user_pool_id
+      COGNITO_CLIENT_ID    = aws_cognito_user_pool_client.sskh_pulse.id
       # AWS_REGION is provided automatically by the Lambda runtime — do not set it here,
       # Lambda rejects it as a reserved environment variable name.
       #

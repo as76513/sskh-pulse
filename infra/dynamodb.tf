@@ -15,10 +15,23 @@ resource "aws_dynamodb_table" "employees" {
     name = "email"
     type = "S"
   }
+  attribute {
+    name = "username"
+    type = "S"
+  }
 
   global_secondary_index {
     name            = "email-index"
     hash_key        = "email"
+    projection_type = "ALL"
+  }
+
+  # Login is by username (e.g. "john.doe"), never email, on screen — this
+  # resolves it to the employee record (and from there, the real email) before
+  # that email is ever sent to Cognito. See authController.login.
+  global_secondary_index {
+    name            = "username-index"
+    hash_key        = "username"
     projection_type = "ALL"
   }
 

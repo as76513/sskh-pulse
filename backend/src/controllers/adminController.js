@@ -1,5 +1,4 @@
 import crypto from 'crypto';
-import bcrypt from 'bcryptjs';
 import {
   ddb,
   Tables,
@@ -11,39 +10,48 @@ import {
   QueryCommand,
   BatchGetCommand,
 } from '../config/dynamo.js';
+import { createCognitoUser } from '../config/cognito.js';
 
 export async function createEmployee(req, res) {
   const {
-    emp_code, name, email, phone, password, role,
+    emp_code, name, username, email, phone, password, role,
     office_id, shift_start, shift_end, date_of_joining, leave_balance,
   } = req.body;
-  if (!emp_code || !name || !password)
-    return res.status(400).json({ error: 'emp_code, name, password required' });
+  if (!emp_code || !name || !username || !email || !password)
+    return res.status(400).json({ error: 'emp_code, name, username, email, password required' });
 
   const { Item: existing } = await ddb.send(
     new GetCommand({ TableName: Tables.employees, Key: { emp_code } })
   );
-  if (existing) return res.status(409).json({ error: 'emp_code or email exists' });
+  if (existing) return res.status(409).json({ error: 'emp_code, username or email exists' });
 
-  if (email) {
-    const { Items } = await ddb.send(
-      new QueryCommand({
-        TableName: Tables.employees,
-        IndexName: 'email-index',
-        KeyConditionExpression: 'email = :e',
-        ExpressionAttributeValues: { ':e': email },
-      })
-    );
-    if (Items.length) return res.status(409).json({ error: 'emp_code or email exists' });
-  }
+  const normalizedUsername = username.trim().toLowerCase();
+  const [{ Items: byEmail }, { Items: byUsername }] = await Promise.all([
+    ddb.send(new QueryCommand({
+      TableName: Tables.employees,
+      IndexName: 'email-index',
+      KeyConditionExpression: 'email = :e',
+      ExpressionAttributeValues: { ':e': email },
+    })),
+    ddb.send(new QueryCommand({
+      TableName: Tables.employees,
+      IndexName: 'username-index',
+      KeyConditionExpression: 'username = :u',
+      ExpressionAttributeValues: { ':u': normalizedUsername },
+    })),
+  ]);
+  if (byEmail.length || byUsername.length)
+    return res.status(409).json({ error: 'emp_code, username or email exists' });
 
-  const hash = await bcrypt.hash(password, 10);
+  // Password lives in the shared Cognito pool now, not in our own table.
+  await createCognitoUser(email, password);
+
   const item = {
     emp_code,
     name,
-    email: email || null,
+    username: normalizedUsername,
+    email,
     phone: phone || null,
-    password_hash: hash,
     role: role || 'employee',
     office_id: office_id || null,
     shift_start: shift_start || '09:30',

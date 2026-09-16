@@ -52,7 +52,8 @@ export default function Profile() {
                onChange={(e) => setPwd({ ...pwd, old_password: e.target.value })} />
         <label>New Password</label>
         <input type="password" value={pwd.new_password}
-               onChange={(e) => setPwd({ ...pwd, new_password: e.target.value })} />
+               onChange={(e) => setPwd({ ...pwd, new_password: e.target.value })}
+               placeholder="8+ chars, upper+lower+number+symbol" />
         <button className="btn" onClick={changePwd}>Update Password</button>
       </div>
 

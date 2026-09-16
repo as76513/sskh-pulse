@@ -6,7 +6,7 @@ import logo from '../assets/logo.jpg';
 export default function Login() {
   const { login } = useAuth();
   const nav = useNavigate();
-  const [emp, setEmp] = useState('');
+  const [username, setUsername] = useState('');
   const [pwd, setPwd] = useState('');
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
@@ -14,7 +14,7 @@ export default function Login() {
   async function submit() {
     setErr(''); setBusy(true);
     try {
-      await login(emp, pwd);
+      await login(username, pwd);
       nav('/');
     } catch (e) {
       setErr(e.message);
@@ -31,9 +31,9 @@ export default function Login() {
         <div className="sub">Shubh Shree Knowledge Hub Private Limited</div>
 
         <div className="card" style={{ textAlign: 'left' }}>
-          <label>Employee Code</label>
-          <input value={emp} onChange={(e) => setEmp(e.target.value)}
-                 placeholder="EMP001" autoCapitalize="characters" />
+          <label>Username</label>
+          <input value={username} onChange={(e) => setUsername(e.target.value)}
+                 placeholder="firstname.lastname" autoCapitalize="none" />
           <label>Password</label>
           <input type="password" value={pwd} onChange={(e) => setPwd(e.target.value)}
                  placeholder="••••••••"

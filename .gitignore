@@ -5,6 +5,9 @@ dist/
 *.log
 .npm/
 
+# local Claude Code tool-permission config — session-specific, not project source
+.claude/
+
 # stray asset copy — the real one lives at frontend/src/assets/logo.jpg
 /Shubh-Shree-logo.jpg
 

@@ -17,11 +17,11 @@ export function AuthProvider({ children }) {
       .finally(() => setLoading(false));
   }, []);
 
-  async function login(emp_code, password) {
+  async function login(username, password) {
     const data = await api('/auth/login', {
       method: 'POST',
       auth: false,
-      body: { emp_code, password },
+      body: { username, password },
     });
     localStorage.setItem('sskh_token', data.token);
     setUser(data.user);

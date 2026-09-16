@@ -53,7 +53,21 @@ data "aws_iam_policy_document" "lambda_app" {
     actions   = ["s3:PutObject", "s3:GetObject"]
     resources = ["${aws_s3_bucket.files.arn}/*"]
   }
+
+  # Scoped to exactly the one (shared, externally-owned) user pool — never
+  # broadened to cognito-idp:* or to other pools in the account.
+  statement {
+    sid = "CognitoAuth"
+    actions = [
+      "cognito-idp:AdminInitiateAuth",
+      "cognito-idp:AdminCreateUser",
+      "cognito-idp:AdminSetUserPassword",
+    ]
+    resources = ["arn:aws:cognito-idp:${var.aws_region}:${data.aws_caller_identity.current.account_id}:userpool/${var.cognito_user_pool_id}"]
+  }
 }
+
+data "aws_caller_identity" "current" {}
 
 resource "aws_iam_role_policy" "lambda_app" {
   name   = "${var.project_name}-lambda-app"

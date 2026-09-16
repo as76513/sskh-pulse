@@ -1,8 +1,8 @@
-import bcrypt from 'bcryptjs';
 import { ddb, Tables, PutCommand } from './dynamo.js';
+import { createCognitoUser } from './cognito.js';
 
 // Default password for seeded accounts. CHANGE after first login.
-const DEFAULT_PWD = process.env.SEED_PASSWORD || 'admin123';
+const DEFAULT_PWD = process.env.SEED_PASSWORD || 'Admin@12345';
 const DEFAULT_OFFICE_ID = '1';
 
 async function putIfAbsent(TableName, Item, keyAttrs) {
@@ -21,6 +21,16 @@ async function putIfAbsent(TableName, Item, keyAttrs) {
   }
 }
 
+// Never overwrites a password for a user that's already provisioned —
+// only ever creates it once, same spirit as putIfAbsent above.
+async function ensureCognitoUser(email, password) {
+  try {
+    await createCognitoUser(email, password);
+  } catch (e) {
+    if (e.name !== 'UsernameExistsException') throw e;
+  }
+}
+
 async function run() {
   console.log('Seeding default office...');
   await putIfAbsent(
@@ -36,10 +46,8 @@ async function run() {
   );
 
   console.log('Seeding users...');
-  const hash = await bcrypt.hash(DEFAULT_PWD, 10);
   const baseEmployee = {
     office_id: DEFAULT_OFFICE_ID,
-    password_hash: hash,
     shift_start: '09:30',
     shift_end: '18:30',
     late_grace_min: 15,
@@ -50,18 +58,17 @@ async function run() {
     resignation_enabled: false,
   };
 
-  await putIfAbsent(
-    Tables.employees,
-    { ...baseEmployee, emp_code: 'ADMIN001', name: 'System Admin', email: 'admin@shubhshree.com', role: 'admin' },
-    ['emp_code']
-  );
-  await putIfAbsent(
-    Tables.employees,
-    { ...baseEmployee, emp_code: 'EMP001', name: 'Test Employee', email: 'emp@shubhshree.com', role: 'employee' },
-    ['emp_code']
-  );
+  const seedEmployees = [
+    { emp_code: 'ADMIN001', name: 'System Admin', username: 'system.admin', email: 'admin@shubhshree.com', role: 'admin' },
+    { emp_code: 'EMP001', name: 'Test Employee', username: 'test.employee', email: 'emp@shubhshree.com', role: 'employee' },
+  ];
 
-  console.log(`✅ Seed complete. Admin: ADMIN001 / ${DEFAULT_PWD}`);
+  for (const emp of seedEmployees) {
+    await ensureCognitoUser(emp.email, DEFAULT_PWD);
+    await putIfAbsent(Tables.employees, { ...baseEmployee, ...emp }, ['emp_code']);
+  }
+
+  console.log(`✅ Seed complete. Admin username: system.admin / ${DEFAULT_PWD}`);
   console.log('   Update the "Head Office" lat/long via the admin API before testing geofencing.');
 }
 

@@ -48,6 +48,11 @@ output "amplify_domain_verification_record" {
   value       = aws_amplify_domain_association.frontend.certificate_verification_dns_record
 }
 
+output "cognito_client_id" {
+  description = "App client SSKH Pulse uses against the shared user pool."
+  value       = aws_cognito_user_pool_client.sskh_pulse.id
+}
+
 output "amplify_subdomain_dns_record" {
   description = "Add this CNAME in GoDaddy for the sskh-pulse subdomain itself. May be empty right after apply — Amplify provisions it asynchronously; re-run `terraform refresh` / check `aws amplify get-domain-association` if blank."
   value       = try([for s in aws_amplify_domain_association.frontend.sub_domain : s.dns_record][0], null)

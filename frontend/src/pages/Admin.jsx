@@ -128,14 +128,14 @@ function EmployeeList() {
 }
 
 function AddEmployee() {
-  const [form, setForm] = useState({ emp_code: '', name: '', email: '', password: '', role: 'employee', office_id: 1 });
+  const [form, setForm] = useState({ emp_code: '', name: '', username: '', email: '', password: '', role: 'employee', office_id: 1 });
   const [msg, setMsg] = useState(null);
   async function submit() {
     setMsg(null);
     try {
       await api('/admin/employees', { method: 'POST', body: form });
       setMsg({ ok: true, text: 'Employee created' });
-      setForm({ emp_code: '', name: '', email: '', password: '', role: 'employee', office_id: 1 });
+      setForm({ emp_code: '', name: '', username: '', email: '', password: '', role: 'employee', office_id: 1 });
     } catch (e) { setMsg({ ok: false, text: e.message }); }
   }
   return (
@@ -145,10 +145,14 @@ function AddEmployee() {
       <input value={form.emp_code} onChange={(e) => setForm({ ...form, emp_code: e.target.value })} />
       <label>Name</label>
       <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+      <label>Username (for login)</label>
+      <input value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })}
+             placeholder="firstname.lastname" />
       <label>Email</label>
       <input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
       <label>Temp Password</label>
-      <input value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
+      <input value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })}
+             placeholder="8+ chars, upper+lower+number+symbol" />
       <label>Role</label>
       <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
         <option value="employee">Employee</option>
