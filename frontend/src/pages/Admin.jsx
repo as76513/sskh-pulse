@@ -128,14 +128,14 @@ function EmployeeList() {
 }
 
 function AddEmployee() {
-  const [form, setForm] = useState({ emp_code: '', name: '', email: '', password: '', role: 'employee', office_id: 1 });
+  const [form, setForm] = useState({ emp_code: '', name: '', email: '', password: '', role: 'employee', office_id: '1' });
   const [msg, setMsg] = useState(null);
   async function submit() {
     setMsg(null);
     try {
       await api('/admin/employees', { method: 'POST', body: form });
       setMsg({ ok: true, text: 'Employee created' });
-      setForm({ emp_code: '', name: '', email: '', password: '', role: 'employee', office_id: 1 });
+      setForm({ emp_code: '', name: '', email: '', password: '', role: 'employee', office_id: '1' });
     } catch (e) { setMsg({ ok: false, text: e.message }); }
   }
   return (
