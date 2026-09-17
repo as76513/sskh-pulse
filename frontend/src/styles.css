@@ -52,13 +52,19 @@ body {
   border-bottom: 1px solid var(--border);
 }
 .topbar .logo {
-  width: 40px; height: 40px; border-radius: 50%;
-  flex-shrink: 0; overflow: hidden;
-  background: var(--navy-deep);
+  position: relative;
+  width: 44px; height: 44px; min-width: 44px; min-height: 44px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  overflow: hidden;
+  background: #1b2a4a;
 }
 .topbar .logo img {
-  display: block; width: 40px; height: 40px;
-  object-fit: cover;
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  max-width: 100%; max-height: 100%;
+  object-fit: contain;
+  object-position: center;
 }
 .topbar h1 { font-size: 16px; margin: 0; font-weight: 700; color: var(--ink); }
 .topbar small { color: var(--ink-muted); font-size: 11px; display: block; }
@@ -210,12 +216,17 @@ textarea { resize: vertical; min-height: 70px; }
 }
 .login-box { width: 100%; max-width: 360px; text-align: center; }
 .login-box .brand-logo {
-  width: 76px; height: 76px; border-radius: 50%; margin: 0 auto 14px;
-  background: var(--navy-deep); display: grid; place-items: center;
-  color: var(--gold-bright); font-size: 34px; font-weight: 800;
+  position: relative;
+  width: 88px; height: 88px; border-radius: 50%; margin: 0 auto 14px;
+  background: #1b2a4a;
   overflow: hidden;
 }
-.login-box .brand-logo img { width: 100%; height: 100%; object-fit: cover; }
+.login-box .brand-logo img {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: contain;
+  object-position: center;
+}
 .login-box .brand-logo.pulse {
   animation: pulse-ring 2s ease-out infinite;
 }
