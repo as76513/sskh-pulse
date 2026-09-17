@@ -152,6 +152,7 @@ textarea { resize: vertical; min-height: 70px; }
 .cal-cell.empty { background: transparent; }
 .cal-cell.present { background: var(--success-bg); color: var(--success); }
 .cal-cell.halfday { background: var(--warning-bg); color: var(--warning); }
+.cal-cell.LM      { background: var(--warning-bg); color: var(--warning); }
 .cal-cell.absent  { background: var(--danger-bg); color: var(--danger); }
 .cal-cell.today   { border-color: var(--gold-bright); }
 .cal-day-num { font-size: 16px; font-weight: 800; color: var(--ink); }
@@ -166,6 +167,7 @@ textarea { resize: vertical; min-height: 70px; }
 }
 .pill.present { background: var(--success-bg); color: var(--success); }
 .pill.late    { background: var(--warning-bg); color: var(--warning); }
+.pill.LM      { background: var(--warning-bg); color: var(--warning); }
 .pill.absent  { background: var(--danger-bg); color: var(--danger); }
 .pill.halfday { background: var(--neutral-bg); color: var(--neutral); }
 .pill.pending { background: var(--neutral-bg); color: var(--neutral); }

@@ -7,6 +7,7 @@ import {
   QueryCommand,
 } from '../config/dynamo.js';
 import { distanceMeters } from '../utils/geo.js';
+import { isLateCheckIn } from '../utils/shift.js';
 
 // Helper: fetch employee + their office in one shot
 async function getEmpWithOffice(emp_code) {
@@ -44,10 +45,8 @@ export async function checkIn(req, res) {
   const today = new Date().toISOString().slice(0, 10);
 
   const now = new Date();
-  const [sh, sm] = emp.shift_start.split(':').map(Number);
-  const shiftStart = new Date(now);
-  shiftStart.setHours(sh, sm + (emp.late_grace_min || 0), 0, 0);
-  const isLate = now > shiftStart;
+  const isLate = isLateCheckIn(now, emp.shift_start, emp.late_grace_min);
+  const status = isLate ? 'LM' : 'present';
 
   try {
     const { Attributes: record } = await ddb.send(
@@ -55,7 +54,7 @@ export async function checkIn(req, res) {
         TableName: Tables.attendance,
         Key: { emp_code, work_date: today },
         UpdateExpression:
-          'SET check_in = :now, in_latitude = :lat, in_longitude = :lng, is_late = :late, #status = :present',
+          'SET check_in = :now, in_latitude = :lat, in_longitude = :lng, is_late = :late, #status = :status',
         ConditionExpression: 'attribute_not_exists(check_in)',
         ExpressionAttributeNames: { '#status': 'status' },
         ExpressionAttributeValues: {
@@ -63,12 +62,12 @@ export async function checkIn(req, res) {
           ':lat': latitude,
           ':lng': longitude,
           ':late': isLate,
-          ':present': 'present',
+          ':status': status,
         },
         ReturnValues: 'ALL_NEW',
       })
     );
-    res.json({ message: 'Checked in', is_late: isLate, record });
+    res.json({ message: isLate ? 'Checked in — Late mark (LM)' : 'Checked in', is_late: isLate, record });
   } catch (e) {
     if (e.name === 'ConditionalCheckFailedException')
       return res.status(409).json({ error: 'Already checked in today' });
@@ -109,7 +108,7 @@ export async function checkOut(req, res) {
           ':lng': longitude,
           ':hrs': Number(workedHours.toFixed(2)),
           ':half': isHalfday,
-          ':status': isHalfday ? 'halfday' : 'present',
+          ':status': isHalfday ? 'halfday' : (rec.is_late ? 'LM' : 'present'),
         },
         ReturnValues: 'ALL_NEW',
       })

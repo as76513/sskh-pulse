@@ -11,6 +11,7 @@ import {
   BatchGetCommand,
 } from '../config/dynamo.js';
 import { ensureCognitoUser } from '../config/cognito.js';
+import { DEFAULT_LATE_GRACE_MIN, DEFAULT_SHIFT_END, DEFAULT_SHIFT_START } from '../utils/shift.js';
 
 export async function createEmployee(req, res) {
   const {
@@ -46,9 +47,9 @@ export async function createEmployee(req, res) {
     phone: phone || null,
     role: role || 'employee',
     office_id: office_id || null,
-    shift_start: shift_start || '09:30',
-    shift_end: shift_end || '18:30',
-    late_grace_min: 15,
+    shift_start: shift_start || DEFAULT_SHIFT_START,
+    shift_end: shift_end || DEFAULT_SHIFT_END,
+    late_grace_min: DEFAULT_LATE_GRACE_MIN,
     halfday_hours: 4.5,
     leave_balance: leave_balance ?? 24,
     date_of_joining: date_of_joining || null,

@@ -38,7 +38,7 @@ sskh-pulse/
 |---|---|
 | Emp code + Password | `authController.login`, JWT |
 | Location-based attendance | `attendanceController` + `utils/geo.js` geofence |
-| Late mark | auto-computed on check-in vs shift_start + grace |
+| Late mark (LM) | check-in after 10:15 IST (shift 10:00–18:00, 15 min grace) |
 | Half day | auto-computed on check-out vs `halfday_hours` |
 | Leaves | `leaveController` (apply / approve / balance) |
 | Pay slip | `filesController` (admin upload, employee download via S3) |

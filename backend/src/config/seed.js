@@ -1,5 +1,6 @@
-import { ddb, Tables, PutCommand } from './dynamo.js';
+import { ddb, Tables, PutCommand, ScanCommand, UpdateCommand } from './dynamo.js';
 import { ensureCognitoUser } from './cognito.js';
+import { DEFAULT_LATE_GRACE_MIN, DEFAULT_SHIFT_END, DEFAULT_SHIFT_START } from '../utils/shift.js';
 
 // Default password for seeded accounts. CHANGE after first login.
 const DEFAULT_PWD = process.env.SEED_PASSWORD || 'Admin@12345';
@@ -38,9 +39,9 @@ async function run() {
   console.log('Seeding users...');
   const baseEmployee = {
     office_id: DEFAULT_OFFICE_ID,
-    shift_start: '09:30',
-    shift_end: '18:30',
-    late_grace_min: 15,
+    shift_start: DEFAULT_SHIFT_START,
+    shift_end: DEFAULT_SHIFT_END,
+    late_grace_min: DEFAULT_LATE_GRACE_MIN,
     halfday_hours: 4.5,
     leave_balance: 24,
     date_of_joining: new Date().toISOString().slice(0, 10),
@@ -60,6 +61,29 @@ async function run() {
   for (const emp of seedEmployees) {
     await ensureCognitoUser(emp.email, DEFAULT_PWD);
     await putIfAbsent(Tables.employees, { ...baseEmployee, ...emp }, ['emp_code']);
+  }
+
+  // Office hours live on each employee row (no admin UI to edit them).
+  // Patch everyone so a policy change applies without re-creating accounts.
+  const { Items: allEmps } = await ddb.send(new ScanCommand({ TableName: Tables.employees }));
+  for (const emp of allEmps || []) {
+    if (
+      emp.shift_start === DEFAULT_SHIFT_START &&
+      emp.shift_end === DEFAULT_SHIFT_END &&
+      emp.late_grace_min === DEFAULT_LATE_GRACE_MIN
+    ) continue;
+    await ddb.send(
+      new UpdateCommand({
+        TableName: Tables.employees,
+        Key: { emp_code: emp.emp_code },
+        UpdateExpression: 'SET shift_start = :ss, shift_end = :se, late_grace_min = :g',
+        ExpressionAttributeValues: {
+          ':ss': DEFAULT_SHIFT_START,
+          ':se': DEFAULT_SHIFT_END,
+          ':g': DEFAULT_LATE_GRACE_MIN,
+        },
+      })
+    );
   }
 
   console.log(`✅ Seed complete. Admin username: seed.admin / ${DEFAULT_PWD} (only if newly created — existing users keep their real password)`);

@@ -30,7 +30,7 @@ export default function Home() {
         method: 'POST',
         body: { latitude: loc.latitude, longitude: loc.longitude },
       });
-      setMsg({ ok: true, text: res.message + (res.is_late ? ' (Late)' : '') });
+      setMsg({ ok: true, text: res.message });
       await load();
     } catch (e) {
       setMsg({ ok: false, text: e.message });
@@ -56,7 +56,7 @@ export default function Home() {
           <div className="list-item">
             <span>Check In</span>
             <span>{new Date(today.check_in).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
-              {today.is_late && <span className="pill late" style={{ marginLeft: 6 }}>Late</span>}
+              {(today.is_late || today.status === 'LM') && <span className="pill LM" style={{ marginLeft: 6 }}>LM</span>}
             </span>
           </div>
         )}
@@ -151,7 +151,7 @@ function MonthCalendar() {
   }, [leaves, month]);
 
   const todayStr = new Date().toISOString().slice(0, 10);
-  const presentCount = history.filter((h) => h.status === 'present' || h.status === 'halfday').length;
+  const presentCount = history.filter((h) => h.status === 'present' || h.status === 'halfday' || h.status === 'LM').length;
 
   const cells = [];
   for (let i = 0; i < firstWeekday; i++) cells.push(null);
@@ -163,6 +163,7 @@ function MonthCalendar() {
     let label = '';
     if (leave) { cls = 'present'; label = LEAVE_ABBR[leave.leave_type] || 'LV'; }
     else if (att?.status === 'present') { cls = 'present'; label = '✓'; }
+    else if (att?.status === 'LM') { cls = 'LM'; label = 'LM'; }
     else if (att?.status === 'halfday') { cls = 'halfday'; label = 'H'; }
     else if (att?.status === 'absent') { cls = 'absent'; label = 'A'; }
     cells.push({ day, dateStr, cls, label, isToday: dateStr === todayStr });
