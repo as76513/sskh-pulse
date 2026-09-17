@@ -34,7 +34,7 @@ output "api_gateway_target_domain" {
 # --- Frontend (Amplify Hosting) ---
 
 output "amplify_app_id" {
-  description = "Used by deploy_frontend.sh to push builds."
+  description = "Amplify app that builds from GitHub main."
   value       = aws_amplify_app.frontend.id
 }
 

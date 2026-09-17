@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Builds frontend/ and pushes it to Amplify Hosting via a manual deployment
-# (no GitHub linkage — Amplify's OAuth repo-connect flow needs a browser).
-# Run this after `terraform apply` has created aws_amplify_app.frontend.
+# Emergency fallback: builds frontend/ and pushes a zip to Amplify.
+# Normal deploys are GitHub → Amplify on push to main. Use this only if
+# you need to ship a frontend without a git push.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
