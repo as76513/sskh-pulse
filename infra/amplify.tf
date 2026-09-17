@@ -29,28 +29,30 @@ variable "github_access_token" {
 
 resource "aws_amplify_app" "frontend" {
   name         = "${var.project_name}-frontend"
-  repository   = var.github_repository
+  repository   = var.github_access_token != null ? var.github_repository : null
   access_token = var.github_access_token
 
   # Same spec as the repo-root amplify.yml — used if the file is missing on a branch.
   build_spec = <<-EOT
     version: 1
-    frontend:
-      phases:
-        preBuild:
-          commands:
-            - nvm use 20 || nvm use 18
-            - npm ci --prefix frontend
-        build:
-          commands:
-            - npm run build --prefix frontend
-      artifacts:
-        baseDirectory: frontend/dist
-        files:
-          - '**/*'
-      cache:
-        paths:
-          - frontend/node_modules/**/*
+    applications:
+      - appRoot: frontend
+        frontend:
+          phases:
+            preBuild:
+              commands:
+                - nvm use 20 || nvm use 18
+                - npm ci
+            build:
+              commands:
+                - npm run build
+          artifacts:
+            baseDirectory: dist
+            files:
+              - '**/*'
+          cache:
+            paths:
+              - node_modules/**/*
   EOT
 
   # SPA client-side routing: unresolved paths fall back to index.html so
@@ -62,10 +64,6 @@ resource "aws_amplify_app" "frontend" {
   }
 
   tags = local.tags
-
-  lifecycle {
-    ignore_changes = [access_token]
-  }
 }
 
 resource "aws_amplify_branch" "main" {
