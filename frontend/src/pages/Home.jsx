@@ -21,6 +21,7 @@ export default function Home() {
     setHistory(await api('/attendance/history'));
   }
   useEffect(() => { load(); }, []);
+  useEffect(() => { getPosition().catch(() => {}); }, []);
 
   async function punch(kind) {
     setMsg(null); setBusy(true);
