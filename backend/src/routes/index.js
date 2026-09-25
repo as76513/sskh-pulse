@@ -51,6 +51,7 @@ r.post('/admin/offices', authRequired, adminOnly, wrap(admin.createOffice));
 r.post('/admin/regularize', authRequired, adminOnly, wrap(admin.regularizeAttendance));
 r.post('/admin/attendance/delete', authRequired, adminOnly, wrap(admin.deleteAttendance));
 r.get('/admin/report', authRequired, adminOnly, wrap(admin.dailyReport));
+r.get('/admin/attendance/monthly', authRequired, adminOnly, wrap(admin.monthlyAttendance));
 r.post('/admin/employees/:emp_code/resignation-access', authRequired, adminOnly, wrap(admin.setResignationAccess));
 
 export default r;

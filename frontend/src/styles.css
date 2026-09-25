@@ -161,7 +161,18 @@ textarea { resize: vertical; min-height: 70px; }
 .cal-cell.present { background: var(--success-bg); color: var(--success); }
 .cal-cell.halfday { background: var(--warning-bg); color: var(--warning); }
 .cal-cell.LM      { background: var(--warning-bg); color: var(--warning); }
+.cal-cell.leave   { background: var(--gold-soft); color: var(--gold); }
+.cal-cell.off     { background: transparent; color: var(--ink-muted); }
 .cal-cell.absent  { background: var(--danger-bg); color: var(--danger); }
+.stat-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+  margin: 12px 0;
+}
+.stat {
+  background: var(--paper); border-radius: 10px; padding: 10px 8px; text-align: center;
+}
+.stat span { display: block; font-size: 11px; color: var(--ink-muted); }
+.stat strong { font-size: 18px; color: var(--ink); }
 .cal-cell.today   { border-color: var(--gold-bright); }
 .cal-day-num { font-size: 16px; font-weight: 800; color: var(--ink); }
 .cal-cell.today .cal-day-num {

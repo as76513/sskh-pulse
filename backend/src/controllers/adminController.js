@@ -209,3 +209,144 @@ export async function dailyReport(req, res) {
 
   res.json({ date, records });
 }
+
+function eachDateInclusive(from, to) {
+  const dates = [];
+  const start = from.slice(0, 10);
+  const end = to.slice(0, 10);
+  let [y, m, d] = start.split('-').map(Number);
+  const [ey, em, ed] = end.split('-').map(Number);
+  while (y < ey || (y === ey && m < em) || (y === ey && m === em && d <= ed)) {
+    dates.push(`${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`);
+    const next = new Date(Date.UTC(y, m - 1, d + 1));
+    y = next.getUTCFullYear();
+    m = next.getUTCMonth() + 1;
+    d = next.getUTCDate();
+  }
+  return dates;
+}
+
+function weekdayName(dateStr) {
+  return ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][
+    new Date(`${dateStr}T00:00:00Z`).getUTCDay()
+  ];
+}
+
+// Month-long attendance + leave rollup for one employee (salary / deduction).
+export async function monthlyAttendance(req, res) {
+  const { emp_code, month } = req.query;
+  if (!emp_code || !/^\d{4}-\d{2}$/.test(month || ''))
+    return res.status(400).json({ error: 'emp_code and month (YYYY-MM) required' });
+
+  const { Item: emp } = await ddb.send(
+    new GetCommand({ TableName: Tables.employees, Key: { emp_code } })
+  );
+  if (!emp) return res.status(404).json({ error: 'Employee not found' });
+
+  const { Items: attendance } = await ddb.send(
+    new QueryCommand({
+      TableName: Tables.attendance,
+      KeyConditionExpression: 'emp_code = :e AND begins_with(work_date, :m)',
+      ExpressionAttributeValues: { ':e': emp_code, ':m': month },
+    })
+  );
+  const attByDate = Object.fromEntries((attendance || []).map((a) => [a.work_date, a]));
+
+  const { Items: leaves } = await ddb.send(
+    new QueryCommand({
+      TableName: Tables.leaves,
+      IndexName: 'emp_code-index',
+      KeyConditionExpression: 'emp_code = :e',
+      ExpressionAttributeValues: { ':e': emp_code },
+    })
+  );
+  const leaveByDate = {};
+  for (const l of leaves || []) {
+    if (l.status !== 'approved' || l.leave_type === 'regularization') continue;
+    const from = l.from_date?.slice(0, 10);
+    const to = l.to_date?.slice(0, 10);
+    if (!from || !to) continue;
+    for (const ds of eachDateInclusive(from, to)) {
+      if (ds.slice(0, 7) === month) leaveByDate[ds] = l;
+    }
+  }
+
+  const [year, mon] = month.split('-').map(Number);
+  const daysInMonth = new Date(Date.UTC(year, mon, 0)).getUTCDate();
+  const days = [];
+  const summary = {
+    present: 0,
+    late: 0,
+    halfday: 0,
+    leave: 0,
+    lwp: 0,
+    absent: 0,
+    unmarked: 0,
+    off: 0,
+    payable_days: 0,
+  };
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const date = `${month}-${String(day).padStart(2, '0')}`;
+    const weekday = weekdayName(date);
+    const isSunday = weekday === 'Sunday';
+    const leave = leaveByDate[date];
+    const att = attByDate[date];
+
+    let status = 'unmarked';
+    let leave_type = null;
+    if (leave) {
+      leave_type = leave.leave_type || 'leave';
+      if (leave_type === 'unpaid') {
+        status = 'lwp';
+        summary.lwp += 1;
+      } else {
+        status = 'leave';
+        summary.leave += 1;
+        summary.payable_days += 1;
+      }
+    } else if (att?.status === 'halfday' || att?.is_halfday) {
+      status = 'halfday';
+      summary.halfday += 1;
+      summary.payable_days += 0.5;
+    } else if (att?.status === 'LM' || att?.is_late) {
+      status = 'LM';
+      summary.late += 1;
+      summary.payable_days += 1;
+    } else if (att?.status === 'absent') {
+      status = 'absent';
+      summary.absent += 1;
+    } else if (att?.status === 'present' || att?.check_in) {
+      status = 'present';
+      summary.present += 1;
+      summary.payable_days += 1;
+    } else if (isSunday) {
+      status = 'off';
+      summary.off += 1;
+    } else {
+      summary.unmarked += 1;
+    }
+
+    days.push({
+      date,
+      weekday,
+      status,
+      leave_type,
+      check_in: att?.check_in ?? null,
+      check_out: att?.check_out ?? null,
+      worked_hours: att?.worked_hours ?? null,
+      is_late: att?.is_late ?? false,
+      is_halfday: att?.is_halfday ?? false,
+    });
+  }
+
+  summary.payable_days = Number(summary.payable_days.toFixed(2));
+
+  const { password_hash, ...empSafe } = emp;
+  res.json({
+    month,
+    employee: { emp_code: empSafe.emp_code, name: empSafe.name, role: empSafe.role },
+    summary,
+    days,
+  });
+}
