@@ -77,6 +77,14 @@ resource "aws_amplify_branch" "main" {
   stage             = "PRODUCTION"
   framework         = "Web"
 
+  # Added by the Amplify console when the repo was connected. Unused (no Amplify
+  # backend), but Amplify's API cannot clear a branch's variables, so we mirror them.
+  environment_variables = {
+    AMPLIFY_BACKEND_APP_ID    = aws_amplify_app.frontend.id
+    AMPLIFY_BACKEND_PULL_ONLY = "true"
+    USER_BRANCH               = "main"
+  }
+
   tags = local.tags
 }
 
