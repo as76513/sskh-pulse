@@ -208,6 +208,7 @@ function downloadMonthlyCsv(data) {
     [],
     ['Present', summary.present],
     ['Late mark (LM)', summary.late],
+    ['LM deduction (leaves)', summary.lm_deductions],
     ['Half day', summary.halfday],
     ['Paid leave', summary.leave],
     ['Unpaid / LWP', summary.lwp],
@@ -311,6 +312,7 @@ function MonthlyReport() {
           <div className="stat-grid">
             <div className="stat"><span>Present</span><strong>{s.present}</strong></div>
             <div className="stat"><span>Late (LM)</span><strong>{s.late}</strong></div>
+            <div className="stat"><span>LM deduction (leaves)</span><strong>{s.lm_deductions}</strong></div>
             <div className="stat"><span>Half day</span><strong>{s.halfday}</strong></div>
             <div className="stat"><span>Leave</span><strong>{s.leave}</strong></div>
             <div className="stat"><span>LWP</span><strong>{s.lwp}</strong></div>

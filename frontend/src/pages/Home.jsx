@@ -58,6 +58,7 @@ export default function Home() {
             <span>Check In</span>
             <span>{new Date(today.check_in).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
               {(today.is_late || today.status === 'LM') && <span className="pill LM" style={{ marginLeft: 6 }}>LM</span>}
+              {today.lm_deduction && <span className="pill LM" style={{ marginLeft: 6 }}>LM deduction (−1 leave)</span>}
             </span>
           </div>
         )}

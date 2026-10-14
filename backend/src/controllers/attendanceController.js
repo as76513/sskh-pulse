@@ -9,6 +9,51 @@ import {
 import { distanceMeters } from '../utils/geo.js';
 import { isLateCheckIn } from '../utils/shift.js';
 
+// Every LM_PER_DEDUCTION-th late mark in a cycle costs one leave.
+const LM_PER_DEDUCTION = 3;
+const CYCLE_END_DAY = 25;
+
+// LM cycle runs 26th → 25th (inclusive): 2026-10-25 and 2026-10-26 fall in different cycles.
+function lmCycleRange(work_date) {
+  const [y, m, d] = work_date.split('-').map(Number);
+  const start = new Date(Date.UTC(y, d <= CYCLE_END_DAY ? m - 2 : m - 1, CYCLE_END_DAY + 1));
+  const end = new Date(Date.UTC(y, d <= CYCLE_END_DAY ? m - 1 : m, CYCLE_END_DAY));
+  return [start.toISOString().slice(0, 10), end.toISOString().slice(0, 10)];
+}
+
+async function applyLmDeduction(emp_code, work_date) {
+  const [from, to] = lmCycleRange(work_date);
+  const { Count } = await ddb.send(
+    new QueryCommand({
+      TableName: Tables.attendance,
+      KeyConditionExpression: 'emp_code = :e AND work_date BETWEEN :from AND :to',
+      FilterExpression: 'is_late = :t',
+      ExpressionAttributeValues: { ':e': emp_code, ':from': from, ':to': to, ':t': true },
+      Select: 'COUNT',
+      ConsistentRead: true,
+    })
+  );
+  if (!Count || Count % LM_PER_DEDUCTION !== 0) return false;
+
+  await ddb.send(
+    new UpdateCommand({
+      TableName: Tables.employees,
+      Key: { emp_code },
+      UpdateExpression: 'SET leave_balance = leave_balance - :one',
+      ExpressionAttributeValues: { ':one': 1 },
+    })
+  );
+  await ddb.send(
+    new UpdateCommand({
+      TableName: Tables.attendance,
+      Key: { emp_code, work_date },
+      UpdateExpression: 'SET lm_deduction = :t',
+      ExpressionAttributeValues: { ':t': true },
+    })
+  );
+  return true;
+}
+
 // Helper: fetch employee + their office in one shot
 async function getEmpWithOffice(emp_code) {
   const { Item: emp } = await ddb.send(
@@ -67,7 +112,16 @@ export async function checkIn(req, res) {
         ReturnValues: 'ALL_NEW',
       })
     );
-    res.json({ message: isLate ? 'Checked in — Late mark (LM)' : 'Checked in', is_late: isLate, record });
+    const lmDeduction = isLate ? await applyLmDeduction(emp_code, today) : false;
+    if (lmDeduction) record.lm_deduction = true;
+    res.json({
+      message: lmDeduction
+        ? `Checked in — Late mark (LM). ${LM_PER_DEDUCTION} late marks this cycle: 1 leave deducted (LM deduction)`
+        : isLate ? 'Checked in — Late mark (LM)' : 'Checked in',
+      is_late: isLate,
+      lm_deduction: lmDeduction,
+      record,
+    });
   } catch (e) {
     if (e.name === 'ConditionalCheckFailedException')
       return res.status(409).json({ error: 'Already checked in today' });

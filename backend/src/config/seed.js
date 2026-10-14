@@ -43,7 +43,7 @@ async function run() {
     shift_end: DEFAULT_SHIFT_END,
     late_grace_min: DEFAULT_LATE_GRACE_MIN,
     halfday_hours: 4.5,
-    leave_balance: 24,
+    leave_balance: 15,
     date_of_joining: new Date().toISOString().slice(0, 10),
     status: 'active',
     resignation_enabled: false,

@@ -51,7 +51,7 @@ export async function createEmployee(req, res) {
     shift_end: shift_end || DEFAULT_SHIFT_END,
     late_grace_min: DEFAULT_LATE_GRACE_MIN,
     halfday_hours: 4.5,
-    leave_balance: leave_balance ?? 24,
+    leave_balance: leave_balance ?? 15,
     date_of_joining: date_of_joining || null,
     status: 'active',
     resignation_enabled: false,
@@ -277,6 +277,7 @@ export async function monthlyAttendance(req, res) {
   const summary = {
     present: 0,
     late: 0,
+    lm_deductions: 0,
     halfday: 0,
     leave: 0,
     lwp: 0,
@@ -312,6 +313,7 @@ export async function monthlyAttendance(req, res) {
     } else if (att?.status === 'LM' || att?.is_late) {
       status = 'LM';
       summary.late += 1;
+      if (att?.lm_deduction) summary.lm_deductions += 1;
       summary.payable_days += 1;
     } else if (att?.status === 'absent') {
       status = 'absent';
@@ -337,6 +339,7 @@ export async function monthlyAttendance(req, res) {
       worked_hours: att?.worked_hours ?? null,
       is_late: att?.is_late ?? false,
       is_halfday: att?.is_halfday ?? false,
+      lm_deduction: att?.lm_deduction ?? false,
     });
   }
 
