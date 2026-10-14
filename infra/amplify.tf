@@ -29,7 +29,7 @@ variable "github_access_token" {
 
 resource "aws_amplify_app" "frontend" {
   name         = "${var.project_name}-frontend"
-  repository   = var.github_access_token != null ? var.github_repository : null
+  repository   = var.github_repository
   access_token = var.github_access_token
 
   # Same spec as the repo-root amplify.yml — used if the file is missing on a branch.
@@ -64,6 +64,10 @@ resource "aws_amplify_app" "frontend" {
   }
 
   tags = local.tags
+
+  lifecycle {
+    ignore_changes = [access_token, iam_service_role_arn]
+  }
 }
 
 resource "aws_amplify_branch" "main" {
@@ -71,6 +75,7 @@ resource "aws_amplify_branch" "main" {
   branch_name       = "main"
   enable_auto_build = true
   stage             = "PRODUCTION"
+  framework         = "Web"
 
   tags = local.tags
 }
