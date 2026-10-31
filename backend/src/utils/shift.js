@@ -3,6 +3,17 @@ export const DEFAULT_SHIFT_START = '10:00';
 export const DEFAULT_SHIFT_END = '18:00';
 export const DEFAULT_LATE_GRACE_MIN = 15;
 
+// Calendar date in office TZ (YYYY-MM-DD). Do not use toISOString().slice(0, 10)
+// for work_date — that is UTC and disagrees with IST after 11pm / before 5:30am.
+export function officeDate(date = new Date()) {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: OFFICE_TZ,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date);
+}
+
 function secondsInTz(date, timeZone) {
   const parts = new Intl.DateTimeFormat('en-GB', {
     timeZone,

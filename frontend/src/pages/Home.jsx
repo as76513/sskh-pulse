@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../api/client.js';
 import { getPosition } from '../utils/geo.js';
+import { officeDate } from '../utils/date.js';
 import { useAuth } from '../context/AuthContext.jsx';
 
 export default function Home() {
@@ -26,10 +27,10 @@ export default function Home() {
   async function punch(kind) {
     setMsg(null); setBusy(true);
     try {
-      const loc = await getPosition();
+      const loc = await getPosition({ precise: true });
       const res = await api(`/attendance/${kind}`, {
         method: 'POST',
-        body: { latitude: loc.latitude, longitude: loc.longitude },
+        body: { latitude: loc.latitude, longitude: loc.longitude, accuracy: loc.accuracy },
       });
       setMsg({ ok: true, text: res.message });
       await load();
@@ -117,7 +118,7 @@ function monthLabel(monthStr) {
 
 function MonthCalendar() {
   const [open, setOpen] = useState(true);
-  const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
+  const [month, setMonth] = useState(officeDate().slice(0, 7));
   const [history, setHistory] = useState([]);
   const [leaves, setLeaves] = useState([]);
 
@@ -152,7 +153,7 @@ function MonthCalendar() {
     return map;
   }, [leaves, month]);
 
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = officeDate();
   const presentCount = history.filter((h) => h.status === 'present' || h.status === 'halfday' || h.status === 'LM').length;
 
   const cells = [];

@@ -31,7 +31,7 @@ async function run() {
       name: 'Head Office',
       latitude: 0,
       longitude: 0,
-      geofence_radius: 100,
+      geofence_radius: 250,
     },
     ['id']
   );

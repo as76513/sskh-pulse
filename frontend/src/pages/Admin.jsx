@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api/client.js';
+import { officeDate } from '../utils/date.js';
 
 export default function Admin() {
   const [tab, setTab] = useState('report');
@@ -24,7 +25,7 @@ export default function Admin() {
 }
 
 function DailyReport() {
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(officeDate());
   const [data, setData] = useState(null);
   async function load() { setData(await api(`/admin/report?date=${date}`)); }
   useEffect(() => { load(); }, [date]);
@@ -240,7 +241,7 @@ function downloadMonthlyCsv(data) {
 function MonthlyReport() {
   const [employees, setEmployees] = useState([]);
   const [empCode, setEmpCode] = useState('');
-  const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
+  const [month, setMonth] = useState(officeDate().slice(0, 7));
   const [data, setData] = useState(null);
   const [err, setErr] = useState(null);
   const [busy, setBusy] = useState(false);

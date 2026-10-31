@@ -26,17 +26,29 @@ function once(options) {
   });
 }
 
-// Fast network/cached fix first. GPS only if that fails — high-accuracy +
-// maximumAge:0 was timing out on indoor phones and forcing several taps.
-export async function getPosition() {
+// Prefetch: cheap network/cached fix. Punch: try a fresh GPS first so a
+// stale cell-tower point (often 200–800m off) is not sent as the check-in.
+export async function getPosition({ precise = false } = {}) {
   if (!navigator.geolocation)
     throw new Error('Geolocation not supported');
+
+  if (precise) {
+    try {
+      return await once({
+        enableHighAccuracy: true,
+        timeout: 12000,
+        maximumAge: 5000,
+      });
+    } catch (err) {
+      if (err?.code === 1) throw locationError(err);
+    }
+  }
 
   try {
     return await once({
       enableHighAccuracy: false,
       timeout: 8000,
-      maximumAge: 60_000,
+      maximumAge: precise ? 0 : 60_000,
     });
   } catch (first) {
     if (first?.code === 1) throw locationError(first);

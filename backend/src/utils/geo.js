@@ -13,3 +13,15 @@ export function distanceMeters(lat1, lon1, lat2, lon2) {
 export function isWithinGeofence(userLat, userLng, officeLat, officeLng, radius) {
   return distanceMeters(userLat, userLng, officeLat, officeLng) <= radius;
 }
+
+// Indoor / junction GPS is often 30–150m off. Allow that error so a punch
+// at the office is not stored as a miss (admin then shows "absent").
+const DEFAULT_SLACK_M = 50;
+const MAX_ACCURACY_SLACK_M = 150;
+
+export function geofenceAllowance(radius, accuracy) {
+  const r = Number(radius) || 0;
+  const acc = Number(accuracy);
+  const reported = Number.isFinite(acc) && acc > 0 ? Math.min(acc, MAX_ACCURACY_SLACK_M) : 0;
+  return r + Math.max(DEFAULT_SLACK_M, reported);
+}

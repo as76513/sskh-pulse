@@ -11,7 +11,7 @@ import {
   BatchGetCommand,
 } from '../config/dynamo.js';
 import { ensureCognitoUser } from '../config/cognito.js';
-import { DEFAULT_LATE_GRACE_MIN, DEFAULT_SHIFT_END, DEFAULT_SHIFT_START } from '../utils/shift.js';
+import { DEFAULT_LATE_GRACE_MIN, DEFAULT_SHIFT_END, DEFAULT_SHIFT_START, officeDate } from '../utils/shift.js';
 
 export async function createEmployee(req, res) {
   const {
@@ -163,7 +163,7 @@ export async function deleteAttendance(req, res) {
 
 // Daily report for all employees
 export async function dailyReport(req, res) {
-  const date = req.query.date || new Date().toISOString().slice(0, 10);
+  const date = req.query.date || officeDate();
 
   const { Items: employees } = await ddb.send(
     new ScanCommand({

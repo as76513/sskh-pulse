@@ -6,8 +6,8 @@ import {
   UpdateCommand,
   QueryCommand,
 } from '../config/dynamo.js';
-import { distanceMeters } from '../utils/geo.js';
-import { isLateCheckIn } from '../utils/shift.js';
+import { distanceMeters, geofenceAllowance } from '../utils/geo.js';
+import { isLateCheckIn, officeDate } from '../utils/shift.js';
 
 // Every LM_PER_DEDUCTION-th late mark in a cycle costs one leave.
 const LM_PER_DEDUCTION = 3;
@@ -72,7 +72,7 @@ async function getEmpWithOffice(emp_code) {
 }
 
 export async function checkIn(req, res) {
-  const { latitude, longitude } = req.body;
+  const { latitude, longitude, accuracy } = req.body;
   const emp_code = req.user.emp_code;
   if (latitude == null || longitude == null)
     return res.status(400).json({ error: 'Location required' });
@@ -82,12 +82,22 @@ export async function checkIn(req, res) {
     return res.status(400).json({ error: 'No office assigned' });
 
   const dist = distanceMeters(latitude, longitude, emp.off_lat, emp.off_lng);
-  if (dist > emp.geofence_radius)
+  const allowed = geofenceAllowance(emp.geofence_radius, accuracy);
+  if (dist > allowed) {
+    console.warn(JSON.stringify({
+      event: 'geofence_reject',
+      emp_code,
+      dist: Math.round(dist),
+      radius: emp.geofence_radius,
+      allowed: Math.round(allowed),
+      accuracy: accuracy ?? null,
+    }));
     return res.status(403).json({
-      error: `Outside office range (${Math.round(dist)}m away, allowed ${emp.geofence_radius}m)`,
+      error: `Outside office range (${Math.round(dist)}m away, allowed ${Math.round(allowed)}m)`,
     });
+  }
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = officeDate();
 
   const now = new Date();
   const isLate = isLateCheckIn(now, emp.shift_start, emp.late_grace_min);
@@ -133,7 +143,7 @@ export async function checkOut(req, res) {
   const { latitude, longitude } = req.body;
   const emp_code = req.user.emp_code;
   const emp = await getEmpWithOffice(emp_code);
-  const today = new Date().toISOString().slice(0, 10);
+  const today = officeDate();
 
   const { Item: rec } = await ddb.send(
     new GetCommand({ TableName: Tables.attendance, Key: { emp_code, work_date: today } })
@@ -181,7 +191,7 @@ export async function checkOut(req, res) {
 }
 
 export async function todayStatus(req, res) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = officeDate();
   const { Item } = await ddb.send(
     new GetCommand({
       TableName: Tables.attendance,
